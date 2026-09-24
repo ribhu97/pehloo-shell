@@ -30,8 +30,18 @@ du -h --max-depth=1 | sort -hr | head -n 10
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/ribhu97/pehloo-shell/main/install.sh | sh
-sh install.sh                                     # from a checkout
 ```
+
+If running for a git checkout:
+
+```bash
+sh install.sh
+```
+
+When the script is piped (`curl … | sh`) and no config exists yet, it opens
+`pls --setup` right after installing — straight into the model-backend wizard,
+instead of leaving you with a bare `pls`. Existing installs just print the
+next-step tips, and you can always run `pls --setup` yourself.
 
 The installer works at user level — no sudo, no system Python — using uv, pipx
 or pip, whichever you have, and prints the installed `pls` path plus the

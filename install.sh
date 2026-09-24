@@ -166,6 +166,32 @@ case "$installer" in
     *)    echo "▸ upgrade:   $PY -m pip install --user --upgrade pehloo-shell" ;;
 esac
 
+# --- Setup ------------------------------------------------------------------
+
+# `curl … | sh` is non-interactive and `pls --setup` needs a terminal to ask its
+# questions. In that one case, hand off so a new user lands straight in the
+# wizard. An existing config means setup already happened: just upgrade.
+setup_path="${PEHLOO_SHELL_CONFIG:-$HOME/.pehloo/shell-config.json}"
+
+# The signature of `curl … | sh`: stdin is the script (a pipe) while stdout is
+# the user's terminal. That is the only case where we can hand off — and the
+# wizard must read from the terminal device (`/dev/tty`), because the pipe on
+# stdin is the script, not a user. Skipped when a config already exists, when
+# the script itself runs on a terminal, or with no controlling terminal (CI).
+if [ ! -f "$setup_path" ] && [ ! -t 0 ] && [ -t 1 ] && [ -c /dev/tty ]; then
+    if [ -x "$installed" ]; then
+        echo
+        echo "▸ setup: launching 'pls --setup' — first launch picks your model backend"
+        echo
+        # Run the binary directly, not through `$SHELL -c`: stdout is already this
+        # terminal, and a login shell would only re-read PATH from rc files the
+        # wizard does not need.
+        "$installed" --setup < /dev/tty \
+            || echo "▸ setup skipped; run 'pls --setup' any time" >&2
+        exit 0
+    fi
+fi
+
 cat <<'EOF'
 
 ▸ next:    pls "list files by size"   — the first run sets up your model backend

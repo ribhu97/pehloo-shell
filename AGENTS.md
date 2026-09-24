@@ -49,6 +49,16 @@ change it — nothing executes without an explicit `y`. From Pehloo
   `curl -fsSL <url> | sh`): uv → pipx → pip, user-level only, no sudo. It
   installs the `pehloo-shell` package from PyPI unless `--source` /
   `$PEHLOO_SHELL_SOURCE` says otherwise.
+- After a piped `curl … | sh` install with no config file, `install.sh` runs
+  `"$installed" --setup < /dev/tty` so the wizard opens immediately. The guard is
+  `[ ! -t 0 ] && [ -t 1 ] && [ -c /dev/tty ]`: the script's stdin is the pipe
+  (the script body) and its stdout is the user's terminal. `< /dev/tty` is
+  required — without it the child inherits the *script pipe* as stdin and
+  `pls --setup` exits with "needs an interactive terminal". Skipped when a
+  config already exists, when `sh install.sh` runs on a terminal (the first
+  `pls` run opens the wizard itself), or in CI with no controlling terminal.
+  A wizard that exits non-zero prints `setup skipped`, and the installer still
+  exits 0: the install already succeeded.
 
 ## Branding & voice
 
