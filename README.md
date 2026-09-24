@@ -29,17 +29,18 @@ du -h --max-depth=1 | sort -hr | head -n 10
 ## Install
 
 ```bash
-curl -fsSL https://<your-host>/install.sh | sh    # once install.sh is hosted
+curl -fsSL https://raw.githubusercontent.com/ribhu97/pehloo-shell/main/install.sh | sh
 sh install.sh                                     # from a checkout
 ```
 
 The installer works at user level — no sudo, no system Python — using uv, pipx
 or pip, whichever you have, and prints the installed `pls` path plus the
 `export PATH=…` line if you need one. It installs the `pehloo-shell` package
-from PyPI; point it elsewhere with `--source` / `$PEHLOO_SHELL_SOURCE`:
+from PyPI, falling back to this repository while the package is unpublished.
+Point it elsewhere with `--source` / `$PEHLOO_SHELL_SOURCE`:
 
 ```bash
-sh install.sh --source "git+https://github.com/your-org/pehloo-shell"
+sh install.sh --source "git+https://github.com/ribhu97/pehloo-shell"
 ```
 
 Already have a Python tool runner? Skip the script:

@@ -13,6 +13,8 @@
 set -eu
 
 SOURCE="${PEHLOO_SHELL_SOURCE:-pehloo-shell}"
+# Fallback used when the PyPI package is not available (see the install step).
+REPO_SOURCE="git+https://github.com/ribhu97/pehloo-shell"
 MIN_PYTHON="3.10"
 
 usage() {
@@ -22,7 +24,8 @@ Install the pls CLI.
 Usage: install.sh [--source SPEC]
 
   --source SPEC   pip requirement to install (default: the pehloo-shell package
-                  on PyPI). Also read from $PEHLOO_SHELL_SOURCE.
+                  on PyPI, falling back to the GitHub repository when the
+                  package is not published). Also read from $PEHLOO_SHELL_SOURCE.
   --help          show this message.
 
 Installing from a checkout of this repository installs that checkout.
@@ -95,21 +98,40 @@ fi
 
 installer=""
 
-if command -v uv >/dev/null 2>&1; then
-    installer="uv"
-    echo "▸ uv tool install $SOURCE"
-    uv tool install --force "$SOURCE"
-elif command -v pipx >/dev/null 2>&1; then
-    installer="pipx"
-    echo "▸ pipx install $SOURCE"
-    pipx install --force "$SOURCE"
-else
-    installer="pip"
-    echo "▸ $PY -m pip install --user --upgrade $SOURCE"
-    if ! "$PY" -m pip install --user --upgrade "$SOURCE"; then
-        echo "install.sh: pip could not install it." >&2
-        echo "  This is often an externally-managed environment (PEP 668). Install uv or pipx and rerun:" >&2
-        echo "    curl -LsSf https://astral.sh/uv/install.sh | sh" >&2
+# Install one pip requirement with whichever tool this machine has.
+try_install() {
+    spec="$1"
+    if [ -z "$installer" ]; then
+        if command -v uv >/dev/null 2>&1; then
+            installer="uv"
+        elif command -v pipx >/dev/null 2>&1; then
+            installer="pipx"
+        else
+            installer="pip"
+        fi
+    fi
+    case "$installer" in
+        uv)   echo "▸ uv tool install $spec"; uv tool install --force "$spec" ;;
+        pipx) echo "▸ pipx install $spec"; pipx install --force "$spec" ;;
+        *)    echo "▸ $PY -m pip install --user --upgrade $spec"; "$PY" -m pip install --user --upgrade "$spec" ;;
+    esac
+}
+
+if ! try_install "$SOURCE"; then
+    if [ "$SOURCE" = "pehloo-shell" ]; then
+        # Nothing published on PyPI yet (or PyPI is down): install straight from
+        # the repository so the advertised `curl … | sh` always works.
+        echo "▸ pehloo-shell is not on PyPI yet — installing from $REPO_SOURCE"
+        if ! try_install "$REPO_SOURCE"; then
+            echo "install.sh: could not install $REPO_SOURCE." >&2
+            exit 1
+        fi
+    else
+        echo "install.sh: could not install $SOURCE." >&2
+        if [ "$installer" = "pip" ]; then
+            echo "  This is often an externally-managed environment (PEP 668). Install uv or pipx and rerun:" >&2
+            echo "    curl -LsSf https://astral.sh/uv/install.sh | sh" >&2
+        fi
         exit 1
     fi
 fi
