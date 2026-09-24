@@ -1,0 +1,43 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "pehloo-shell"
+version = "0.1.0"
+description = "Natural language in, shell command out — review it, then press y to run. A Pehloo tool."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "Ribhu" }]
+classifiers = [
+  "Environment :: Console",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3 :: Only",
+]
+dependencies = [
+  "python-dotenv>=1",
+]
+
+[project.urls]
+Homepage = "https://pehloo.xyz"
+
+[project.scripts]
+pls = "pehloo_shell.cli:main"
+
+[tool.ruff]
+# RuntimeError is the CLI's user-facing error contract (`main` catches it), so
+# the "prefer TypeError for invalid type" rule does not apply here.
+lint.ignore = ["TRY004"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["SIM117"]  # pre-existing style: nested `with` blocks per patch
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/pehloo_shell"]
+
+[tool.hatch.build.targets.sdist]
+# Published source distribution: package, tests, docs. `.env`, `logs/` and
+# `benchmark/` are excluded by the .gitignore rules hatchling honours; the
+# explicit list keeps that true if the ignore rules ever change.
+exclude = [".claude", ".serena", ".mcp.json", "logs", "benchmark"]
