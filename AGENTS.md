@@ -84,6 +84,26 @@ Public surfaces match <https://pehloo.xyz>:
 `install.sh` defaults to the `pehloo-shell` package on PyPI, so publishing is what
 makes `pipx install pehloo-shell` work for everyone else.
 
+Releases go out from `.github/workflows/publish.yml` using trusted publishing —
+no API token is stored in the repo or in GitHub secrets. PyPI's publisher form
+("pending publisher" for a project that does not exist yet) must match that file
+exactly:
+
+| PyPI field | Value |
+| --- | --- |
+| PyPI Project Name | `pehloo-shell` |
+| Owner | `ribhu97` |
+| Repository name | `pehloo-shell` |
+| Workflow name | `publish.yml` |
+| Environment name | `pypi` — the workflow sets `environment: pypi`; leaving this blank on PyPI means deleting that line too |
+
+Then: bump `version` in `pyproject.toml`, commit, tag `v<version>`, publish a
+GitHub release. The workflow builds the artifacts, validates their metadata with
+`uv publish --dry-run`, and uploads them with OIDC. `workflow_dispatch` re-runs it
+on demand; `--check-url` makes that a no-op for files PyPI already has.
+
+Publishing by hand, with a token, still works:
+
 ```bash
 uv build                                    # dist/*.whl + dist/*.tar.gz
 uv publish --dry-run dist/*                 # validates the metadata, stops at credentials
@@ -96,9 +116,8 @@ pipx install --index-url https://test.pypi.org/simple/ \
 uv publish --token "$PYPI_TOKEN" dist/*     # the real thing
 ```
 
-- Credentials come from `UV_PUBLISH_TOKEN` / `--token`, or trusted publishing in
-  CI (`--trusted-publishing`). Create the token at
-  <https://pypi.org/manage/account/token/>; never put it in the repo.
+- Credentials for the manual path come from `UV_PUBLISH_TOKEN` / `--token`, or a
+  token from <https://pypi.org/manage/account/token/>; never put one in the repo.
 - Bump `version` in `pyproject.toml` for every upload — PyPI rejects a version it
   already has, so a fix means a new version, not a re-upload.
 - The sdist ships the package, tests and docs only; `.env`, `logs/`,

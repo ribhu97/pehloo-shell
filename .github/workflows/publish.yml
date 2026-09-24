@@ -1,0 +1,60 @@
+name: publish
+
+# Publishes to PyPI with trusted publishing (OIDC) — no API token is stored
+# anywhere. The PyPI publisher form must match this repository row for row:
+#
+#   PyPI Project Name: pehloo-shell
+#   Owner:             ribhu97
+#   Repository name:   pehloo-shell
+#   Workflow name:     publish.yml
+#   Environment name:  pypi
+#
+# If you leave "Environment name" blank on PyPI, delete `environment: pypi`
+# below as well: the OIDC token carries the environment, and a mismatch is
+# rejected. A release publishes whatever version `pyproject.toml` declares, so
+# bump it first, then tag `v<version>`.
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: build sdist and wheel
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10
+        with:
+          python-version: "3.13"
+      - name: Build
+        run: uv build
+      - name: Check the artifact metadata before anything is uploaded
+        run: uv publish --dry-run dist/*
+      - uses: actions/upload-artifact@v7
+        with:
+          name: dist
+          path: dist/
+
+  publish:
+    name: publish to PyPI
+    needs: build
+    runs-on: ubuntu-latest
+    # Must match the Environment name configured on PyPI (see the header).
+    environment: pypi
+    permissions:
+      id-token: write # the OIDC token that trusted publishing exchanges for upload rights
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: dist
+          path: dist/
+      - uses: astral-sh/setup-uv@v10
+      - name: Publish
+        # `--check-url` skips files PyPI already has, so re-running a release is
+        # a no-op instead of an error.
+        run: uv publish --trusted-publishing always --check-url https://pypi.org/simple/ dist/*
